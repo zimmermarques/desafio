@@ -8,17 +8,20 @@ import java.util.Date;
 import java.util.List;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
-import javax.persistence.OneToMany;
+import javax.persistence.ManyToOne;
+import javax.persistence.PostLoad;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
+import javax.validation.constraints.Digits;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -31,41 +34,57 @@ import lombok.Data;
 public class Projeto implements Serializable{
         
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //@GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     
     private String nome;
-    
+
+    @Column(name="data_inicio")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @Temporal(TemporalType.DATE)
     private Date dataInicio;
 
-    private String gerenteResponsavel;
+    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinColumn(name = "idgerente")
+    private Pessoa gerente;
+
+    @Transient
+    private Integer gerenteId;
     
+    @Column(name="data_previsao_fim")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @Temporal(TemporalType.DATE)
     private Date previsaoTermino;
     
+    @Column(name="data_fim")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @Temporal(TemporalType.DATE)
     private Date dataRealTermino;
     
-    private BigDecimal orcamentoTotal;
+    @Digits(message="Number should contain 10 digits.", fraction = 2, integer = 10)
+    private BigDecimal orcamento;
     
     private String descricao;
 
     @Enumerated(EnumType.STRING)
-    private ClassificacaoProjetoEnum classificacao;
+    private ClassificacaoProjetoEnum risco;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "projeto_id")
-    private List<StatusMomento> statusMomentoLista = new ArrayList<>();
+    @Enumerated(EnumType.STRING)
+    private StatusProjetoEnum status;
    
     @ManyToMany(cascade = CascadeType.ALL)
-    private List<Membro> membroLista = new ArrayList<>();
+    @JoinTable(name = "membros", 
+    joinColumns= {@JoinColumn(name="idprojeto")}, 
+    inverseJoinColumns={@JoinColumn(name="idpessoa")})
+    private List<Pessoa> membroLista = new ArrayList<>();
 
-    public void adicionarMembro(Membro membro) throws DesafioException{
-        for(Membro m: this.membroLista){
+    @PostLoad
+    public void init(){
+        this.gerenteId = gerente.getId();
+    }
+
+    public void adicionarMembro(Pessoa membro) throws DesafioException{
+        for(Pessoa m: this.membroLista){
             if(m.getId().equals(membro.getId())){
                 throw new DesafioException("Membro já faz parte do projeto.");
             }
@@ -74,63 +93,44 @@ public class Projeto implements Serializable{
     }
 
     public StatusProjetoEnum getProximoStatusPossivel(){
-        StatusMomento ultimoStatusMomento = getUltimoStatusMomento();
+        StatusProjetoEnum ultimoStatusMomento = getStatus();
 
-        if(ultimoStatusMomento.getStatus().getIndice()==7) return ultimoStatusMomento.getStatus();
+        if(ultimoStatusMomento.getIndice()==7) return ultimoStatusMomento;
 
-        Integer proximoIndice = ultimoStatusMomento.getStatus().getIndice() + 1;
+        Integer proximoIndice = ultimoStatusMomento.getIndice() + 1;
 
-        for(StatusProjetoEnum status: StatusProjetoEnum.values()){
-            if(status.getIndice().equals(proximoIndice)){
-                return status;
+        for(StatusProjetoEnum statusAux: StatusProjetoEnum.values()){
+            if(statusAux.getIndice().equals(proximoIndice)){
+                return statusAux;
             }
         }
         return null;
     }
-
-    public StatusMomento getUltimoStatusMomento(){
-        if(!this.getStatusMomentoLista().isEmpty()){
-            return this.getStatusMomentoLista().get(this.getStatusMomentoLista().size()-1);
-        }else{
-            return null;
-        }
-    }
-
-    public void colocar_EM_ANALISE(){
-        if(existeNaListaDeStatusMomento(StatusProjetoEnum.EM_ANALISE)) return;
-        statusMomentoLista.add(new StatusMomento(new Date(), StatusProjetoEnum.EM_ANALISE));
-    }
-
-    private boolean existeNaListaDeStatusMomento(StatusProjetoEnum status){
-        for(StatusMomento s: this.statusMomentoLista){
-            if(s.getStatus().equals(status)){
-                return true;
-            }
-        }
-        return false;
+    
+    public void colocarEmAnalise(){
+        this.status = StatusProjetoEnum.EM_ANALISE;
     }
 
     public boolean isPodeExcluir() {
-        for(StatusMomento statusMomento: this.statusMomentoLista){
-            if(statusMomento.getStatus().equals(StatusProjetoEnum.INICIADO) ||
-                statusMomento.getStatus().equals(StatusProjetoEnum.EM_ANDAMENTO) ||
-                statusMomento.getStatus().equals(StatusProjetoEnum.ENCERRADO) ){
-                    return false;
-            }
+        if(getStatus().equals(StatusProjetoEnum.INICIADO) ||
+            getStatus().equals(StatusProjetoEnum.EM_ANDAMENTO) ||
+            getStatus().equals(StatusProjetoEnum.ENCERRADO) ){
+                return false;
         }
+        
         return true;
     }
 
     public void darContinuidade() {
         StatusProjetoEnum proximoStatusPossivel = getProximoStatusPossivel();
-        this.adicionarStatus(proximoStatusPossivel, new Date());
+        this.adicionarStatus(proximoStatusPossivel);
     }
 
-    private void adicionarStatus(StatusProjetoEnum proximoStatusPossivel, Date date) {
-        this.statusMomentoLista.add(new StatusMomento(date, proximoStatusPossivel));
+    private void adicionarStatus(StatusProjetoEnum proximoStatusPossivel) {
+        this.status = proximoStatusPossivel;
     }
 
-    public void removerMembro(Membro membro) {
+    public void removerMembro(Pessoa membro) {
         this.getMembroLista().remove(membro);
     }
     

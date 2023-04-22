@@ -14,7 +14,7 @@ public class TesteParaSaberQualProximoStatusProjeto {
     @Test
     public void test(){
         Projeto projeto = new Projeto();
-        projeto.colocar_EM_ANALISE();
+        projeto.colocarEmAnalise();
 
         assertEquals(StatusProjetoEnum.ANALISE_REALIZADA.toString(), projeto.getProximoStatusPossivel().toString());
     }

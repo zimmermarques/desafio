@@ -23,8 +23,7 @@
                         </a>
                     </p>
                     <div class="col-md-14">
-                            <c:if test="${error != ''}">
-
+                            <c:if test="${error.trim() != ''}">
                                 <script>
                                     alert("${error}");    
                                 </script>
@@ -36,7 +35,7 @@
                                         <tr>
                                           <th>ID</th>
                                           <th>Nome</th>
-                                          <th>Classificação</th>
+                                          <th>Risco</th>
                                           <th>Data Início</th>
                                           <th>Gerente Responsável</th>
                                           <th>Previsão Término</th>
@@ -52,13 +51,13 @@
                                                 <td>${p.id}</td>
                                              
                                                 <td>${p.nome}</td>
-                                                <td>${p.classificacao}</td>
+                                                <td>${p.risco}</td>
                                                 <td><fmt:formatDate pattern="dd/MM/yyyy" value="${p.dataInicio}" /></td>
-                                                <td>${p.gerenteResponsavel}</td>
+                                                <td>${p.gerente.nome}</td>
                                                 <td><fmt:formatDate pattern="dd/MM/yyyy" value="${p.previsaoTermino}" /></td>
                                                 <td><fmt:formatDate pattern="dd/MM/yyyy" value="${p.dataRealTermino}" /></td>
-                                                <td>R$ ${p.orcamentoTotal}</td>
-                                                <td>${p.ultimoStatusMomento.status}</td>
+                                                <td>R$ ${p.orcamento}</td>
+                                                <td>${p.status}</td>
                                                 <td>
                                                    <a href="/editar/${p.id}">Editar</a>
                                                 

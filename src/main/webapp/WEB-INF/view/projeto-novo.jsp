@@ -31,6 +31,7 @@
                                 <form:form action="/salvar" method="post" modelAttribute="projeto">
 
                                     <form:hidden path="id" id="id" />
+                                    <form:hidden path="status" id="statusProjeto" />
                                     <div class="row">
                                         <div class="form-group col-md-8">
                                             <label class="col-form-label">Status Atual : ${statusProjeto}</label><br />
@@ -43,9 +44,9 @@
                                         </div>
 
                                         <div class="form-group col-md-8">
-                                            <label for="classificacao"
-                                                class="col-form-label">Classificação</label><br />
-                                            <form:select path="classificacao" id="classificacao" required="required">
+                                            <label for="risco"
+                                                class="col-form-label">Classificação de Risco</label><br />
+                                            <form:select path="risco" id="risco" required="required">
                                                 <form:option value=""> --Selecione--</form:option>
                                                 <form:option value="BAIXO">Baixo</form:option>
                                                 <form:option value="MEDIO">Médio</form:option>
@@ -60,10 +61,15 @@
                                         </div>
 
                                         <div class="form-group col-md-8">
-                                            <label for="gerenteResponsavel" class="col-form-label">Gerente
+                                            <label for="gerenteId" class="col-form-label">Gerente
                                                 Responsável:</label><br />
-                                            <form:input type="text" path="gerenteResponsavel" id="gerenteResponsavel"
-                                                required="required" size="40" />
+                                            <form:select path="gerenteId" id="gerenteId" required="required">    
+                                                <form:option value="">Selecione...</form:option>
+                                                <c:forEach var="mem" varStatus="memStatus" items="${pessoaLista}">
+                                                    <form:option value="${mem.id}">${mem.nome}</form:option>
+                                                </c:forEach>
+                                            </form:select>    
+
                                         </div>
 
                                         <div class="form-group col-md-8">
@@ -82,8 +88,7 @@
                                         <div class="form-group col-md-8">
                                             <label for="orcamentoTotal" class="col-form-label">Orçamento
                                                 Total:</label><br />
-                                            <form:input type="text" path="orcamentoTotal" id="orcamentoTotal"
-                                                required="required" />
+                                            <form:input type="number" min="0.00" max="100000000.00" step="0.01" path="orcamento" id="orcamento" required="required" />
                                         </div>
 
                                         <div class="form-group col-md-8">

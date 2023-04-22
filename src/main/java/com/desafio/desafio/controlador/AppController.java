@@ -4,22 +4,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.desafio.desafio.dominio.ClassificacaoProjetoEnum;
-import com.desafio.desafio.dominio.Membro;
+import com.desafio.desafio.dominio.Pessoa;
 import com.desafio.desafio.dominio.Projeto;
-import com.desafio.desafio.dominio.StatusMomento;
-import com.desafio.desafio.dominio.repositorio.MembroRepositorio;
+import com.desafio.desafio.dominio.repositorio.PessoaRepositorio;
 import com.desafio.desafio.dominio.repositorio.ProjetoRepositorio;
 
 import net.minidev.json.JSONObject;
@@ -32,71 +38,94 @@ public class AppController {
 	private ProjetoRepositorio projetoRepositorio; 
 
 	@Autowired
-	private MembroRepositorio membroRepositorio;
+	private PessoaRepositorio pessoaRepositorio;
 	
-	@RequestMapping("/")
+	Projeto projeto = null;
+
+	String ERRORPROJETO = "Projeto não encontrado para a operação";
+
+	@GetMapping("/")
 	public ModelAndView irIndex() {
 		ModelAndView mav = new ModelAndView("index");
 
-		List<Projeto> projetoLista = new ArrayList<Projeto>();
-
+		List<Projeto> projetoLista = new ArrayList<>();
+		
 		Iterator<Projeto> iterator = projetoRepositorio.findAll().iterator();
 		while (iterator.hasNext()) {
 			projetoLista.add(iterator.next());
 		}
+
 		mav.addObject("error", "");
 		mav.addObject("projetoLista", projetoLista);
-		
+			
 		return mav;
 	}
 	
- 	@RequestMapping("/novo")
+ 	@GetMapping("/novo")
 	public ModelAndView novoProjeto(Model model) {
 		ModelAndView mav = new ModelAndView("projeto-novo");
-		Projeto projeto = new Projeto();
+		
+		projeto = new Projeto();
 
 		List<ClassificacaoProjetoEnum> classLista = Arrays.asList(ClassificacaoProjetoEnum.values());
 		model.addAttribute("classLista", classLista);
 		model.addAttribute("projeto", projeto);
-		
+
+		mav.addObject("pessoaLista", getListaPessoa(false));
+
 		return mav;
 	}
 	
-	@RequestMapping(value = "/salvar", method = RequestMethod.POST)
-	public String saveProjeto(@ModelAttribute("projeto") Projeto projeto) {
-		List<StatusMomento> listaStatus = null;
+	@PostMapping(value = "/salvar")
+	public Object saveProjeto(@ModelAttribute("projeto") @Valid Projeto projeto) {
+
+		Optional<Pessoa> memOp = pessoaRepositorio.findById(projeto.getGerenteId());
+        if(!memOp.isPresent()){
+            return ResponseEntity.badRequest().body("Pessoa não encontrada para a operação");
+        }                                            
+        Pessoa pessoa = memOp.get();
+
+		projeto.setGerente(pessoa);
 
 		if(projeto.getId()==null){
-			projeto.colocar_EM_ANALISE();;
-		}else{
-			Projeto pAux = projetoRepositorio.findById(projeto.getId()).get();
-			listaStatus = pAux.getStatusMomentoLista();
-			projeto.setStatusMomentoLista(listaStatus);
+			projeto.colocarEmAnalise();
+			Long proximoId = projetoRepositorio.count()+1;
+			projeto.setId(Integer.valueOf(proximoId.toString()));
 		}
+
 
 		projetoRepositorio.save(projeto);
 		
 		return "redirect:/";
 	}
 
-	@RequestMapping("/editar/{id}")
+	@GetMapping("/editar/{id}")
 	public ModelAndView editarProjeto(@PathVariable(name = "id") int id) {
 		ModelAndView mav = new ModelAndView("projeto-novo");
 		try{
 
-			Projeto projeto = projetoRepositorio.findById(id).get();
-			
-			mav.addObject("projeto", projeto);
-			mav.addObject("statusProjeto", projeto.getUltimoStatusMomento().getStatus());
+			Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
+        	if(!projOp.isPresent()){
+				mav.setStatus(HttpStatus.BAD_REQUEST);
+	            return mav;
+        	} 
+			projeto = projOp.get();
 
-			List<Membro> membroLista = new ArrayList<Membro>();
-			Iterator<Membro> iterator = membroRepositorio.findAll().iterator();
+			mav.addObject("projeto", projeto);
+			mav.addObject("statusProjeto", projeto.getStatus());
+
+			List<Pessoa> membroLista = new ArrayList<>();
+			Iterator<Pessoa> iterator = pessoaRepositorio.findAll().iterator();
 			while (iterator.hasNext()) {
-				membroLista.add(iterator.next());
+				Pessoa next = iterator.next();
+				if(next.isFuncionario()){
+					membroLista.add(next);
+				}
 			}
 
 			membroLista.removeAll(projeto.getMembroLista());
 			mav.addObject("membroLista", membroLista);
+			mav.addObject("pessoaLista", getListaPessoa(false));
 
 			return mav;
 		}catch(Exception e){
@@ -104,12 +133,17 @@ public class AppController {
 		}
 	}
 	
-	@RequestMapping("/remover/{id}")
-	public ModelAndView deleteProjeto(@PathVariable(name = "id") int id) {
+	@GetMapping("/remover/{id}")
+	public Object deleteProjeto(@PathVariable(name = "id") int id) {
 		ModelAndView mav = null;
 		mav = new ModelAndView("index");
 
-		Projeto projeto = projetoRepositorio.findById(id).get();
+		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
+		if(!projOp.isPresent()){
+			return ResponseEntity.badRequest().body("Projeto não encontrado para a operação");
+		}
+		projeto = projOp.get();
+
 		if(!projeto.isPodeExcluir()){
 			mav = irIndex();
 
@@ -118,32 +152,54 @@ public class AppController {
 		}
 
 		projetoRepositorio.deleteById(id);
-		return mav;		
+		return "redirect:/";		
 	} 
 
-	@RequestMapping("/selecionar-projeto/{id}")
+	@GetMapping("/selecionar-projeto/{id}")
 	public @ResponseBody String selecionarProjeto(@PathVariable(name = "id") int id){
 
-		Projeto projeto = projetoRepositorio.findById(id).get();
+		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
+		if(!projOp.isPresent()){
+			return ERRORPROJETO;
+		}
+		projeto = projOp.get();
 		
 		JSONObject obj = new JSONObject();
 		obj.put("projeto", projeto);
-		obj.put("statusProjeto", projeto.getUltimoStatusMomento().getStatus());
+		obj.put("statusProjeto", projeto.getStatus());
 		obj.put("proximoStatus", projeto.getProximoStatusPossivel());
 
 		return obj.toString();
 	}
 
-	@RequestMapping(value = "/dar-continuidade/{id}", method = RequestMethod.POST)
-	public ModelAndView darContinuidade(@PathVariable(name = "id") Integer id) {
+	@PostMapping(value = "/dar-continuidade/{id}")
+	public Object darContinuidade(@PathVariable(name = "id") Integer id) {
 		ModelAndView mav = irIndex();
 		
+		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
+		if(!projOp.isPresent()){
+			return ResponseEntity.badRequest().body(ERRORPROJETO);
+		}
+		projeto = projOp.get();
 
-		Projeto projeto = projetoRepositorio.findById(id).get();
 		projeto.darContinuidade();
 
 		projetoRepositorio.save(projeto);
 		
 		return mav;
 	}
+
+	private List<Pessoa> getListaPessoa(boolean isFuncionario){
+		List<Pessoa> pessoaLista = new ArrayList<>();
+		Iterator<Pessoa> iterator2 = pessoaRepositorio.findAll().iterator();
+		while (iterator2.hasNext()) {
+			Pessoa next = iterator2.next();
+			if(next.isFuncionario()==isFuncionario){
+				pessoaLista.add(next);
+			}
+		}
+		return pessoaLista;
+	}
+
+
 }

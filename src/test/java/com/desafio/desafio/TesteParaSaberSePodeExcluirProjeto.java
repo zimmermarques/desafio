@@ -11,7 +11,7 @@ public class TesteParaSaberSePodeExcluirProjeto {
     @Test
     public void test(){
         Projeto projeto = new Projeto();
-        projeto.colocar_EM_ANALISE();
+        projeto.colocarEmAnalise();
         projeto.darContinuidade();
         projeto.darContinuidade();
         projeto.darContinuidade();
