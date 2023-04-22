@@ -135,8 +135,8 @@ public class AppController {
 	
 	@GetMapping("/remover/{id}")
 	public Object deleteProjeto(@PathVariable(name = "id") int id) {
+		
 		ModelAndView mav = null;
-		mav = new ModelAndView("index");
 
 		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
 		if(!projOp.isPresent()){

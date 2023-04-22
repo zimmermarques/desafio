@@ -34,7 +34,6 @@ import lombok.Data;
 public class Projeto implements Serializable{
         
     @Id
-    //@GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     
     private String nome;
@@ -112,13 +111,19 @@ public class Projeto implements Serializable{
     }
 
     public boolean isPodeExcluir() {
-        if(getStatus().equals(StatusProjetoEnum.INICIADO) ||
-            getStatus().equals(StatusProjetoEnum.EM_ANDAMENTO) ||
-            getStatus().equals(StatusProjetoEnum.ENCERRADO) ){
-                return false;
+        if(getStatus().getIndice() < StatusProjetoEnum.INICIADO.getIndice()){
+            return true;    
         }
         
-        return true;
+        if(getStatus().getIndice() > StatusProjetoEnum.INICIADO.getIndice() && getStatus().getIndice() < StatusProjetoEnum.EM_ANDAMENTO.getIndice()){
+            return true;    
+        }
+
+        if(getStatus().getIndice() > StatusProjetoEnum.EM_ANDAMENTO.getIndice() && getStatus().getIndice() < StatusProjetoEnum.ENCERRADO.getIndice()){
+            return true;    
+        }
+        
+        return false;
     }
 
     public void darContinuidade() {

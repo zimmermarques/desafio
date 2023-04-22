@@ -143,7 +143,7 @@
                                                         $('#statusConteudo').html("Projeto Encerrado: ");
                                                     }else{
                                                         $('#nomeProjeto').html("Projeto: " + data.projeto.nome);
-                                                        $('#statusProjeto').html("Status Atual: " + data.statusProjeto);
+                                                        $('#statusAtual').html("Status Atual: " + data.projeto.status);
                                                         $('#proximoStatus').html(data.proximoStatus);
                                                     }
 
@@ -252,7 +252,7 @@
 
                                                     
                                                     <div id="nomeProjeto"></div>
-                                                    <div id="statusProjeto"></div>
+                                                    <div id="statusAtual"></div>
                                                     
                                                     <button type="button" class="btn btn-primary" onclick="darContinuidade()" >Prosseguir com Projeto para-><span id="proximoStatus" ></span></button>
                                                 </div>
