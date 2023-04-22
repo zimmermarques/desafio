@@ -22,6 +22,8 @@ import javax.persistence.TemporalType;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.desafio.desafio.DesafioException;
+
 import lombok.Data;
 
 @Entity
@@ -57,15 +59,15 @@ public class Projeto implements Serializable{
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "projeto_id")
-    private List<StatusMomento> statusMomentoLista = new ArrayList<StatusMomento>();
+    private List<StatusMomento> statusMomentoLista = new ArrayList<>();
    
     @ManyToMany(cascade = CascadeType.ALL)
-    private List<Membro> membroLista = new ArrayList<Membro>();
+    private List<Membro> membroLista = new ArrayList<>();
 
-    public void adicionarMembro(Membro membro) throws Exception{
+    public void adicionarMembro(Membro membro) throws DesafioException{
         for(Membro m: this.membroLista){
             if(m.getId().equals(membro.getId())){
-                throw new Exception("Membro já faz parte do projeto.");
+                throw new DesafioException("Membro já faz parte do projeto.");
             }
         }
         this.membroLista.add(membro);
@@ -79,7 +81,7 @@ public class Projeto implements Serializable{
         Integer proximoIndice = ultimoStatusMomento.getStatus().getIndice() + 1;
 
         for(StatusProjetoEnum status: StatusProjetoEnum.values()){
-            if(status.getIndice()==proximoIndice){
+            if(status.getIndice().equals(proximoIndice)){
                 return status;
             }
         }

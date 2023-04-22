@@ -1,5 +1,6 @@
 package com.desafio.desafio.dominio;
 
+import java.io.Serializable;
 import java.util.Date;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,7 +17,8 @@ import lombok.Data;
 
 @Entity
 @Data
-public class StatusMomento {
+public class StatusMomento implements Serializable{
+    
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

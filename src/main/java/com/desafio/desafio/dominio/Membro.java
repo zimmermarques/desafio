@@ -1,5 +1,7 @@
 package com.desafio.desafio.dominio;
 
+import java.io.Serializable;
+
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -11,7 +13,7 @@ import lombok.Data;
 
 @Entity
 @Data
-public class Membro {
+public class Membro implements Serializable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
