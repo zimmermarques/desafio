@@ -10,7 +10,8 @@ http://localhost:8080/membro/salvar
 Corpo JSON:
 {
     "nome":"xxxxxxxxxx xxxxxx xxx",
-    "funcionario":"false"
+    "funcionario":"false",
+    "cpf":"99999999999"
 }
 
 # Porta 
