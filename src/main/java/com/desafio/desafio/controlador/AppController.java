@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import javax.validation.Valid;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,14 +18,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.desafio.desafio.dominio.ClassificacaoProjetoEnum;
 import com.desafio.desafio.dominio.Pessoa;
 import com.desafio.desafio.dominio.Projeto;
+import com.desafio.desafio.dominio.ProjetoDTO;
 import com.desafio.desafio.dominio.repositorio.PessoaRepositorio;
 import com.desafio.desafio.dominio.repositorio.ProjetoRepositorio;
 
@@ -42,7 +42,9 @@ public class AppController {
 	
 	Projeto projeto = null;
 
-	String ERRORPROJETO = "Projeto não encontrado para a operação";
+	String errorProjetoNaoEncontrado = "Projeto não encontrado para a operação";
+
+	String atributoProjeto = "projeto";
 
 	@GetMapping("/")
 	public ModelAndView irIndex() {
@@ -69,7 +71,7 @@ public class AppController {
 
 		List<ClassificacaoProjetoEnum> classLista = Arrays.asList(ClassificacaoProjetoEnum.values());
 		model.addAttribute("classLista", classLista);
-		model.addAttribute("projeto", projeto);
+		model.addAttribute(atributoProjeto, projeto);
 
 		mav.addObject("pessoaLista", getListaPessoa(false));
 
@@ -77,24 +79,27 @@ public class AppController {
 	}
 	
 	@PostMapping(value = "/salvar")
-	public Object saveProjeto(@ModelAttribute("projeto") @Valid Projeto projeto) {
-
+	public Object saveProjeto(@ModelAttribute("projeto") @Valid ProjetoDTO projeto) {
+		
 		Optional<Pessoa> memOp = pessoaRepositorio.findById(projeto.getGerenteId());
         if(!memOp.isPresent()){
             return ResponseEntity.badRequest().body("Pessoa não encontrada para a operação");
         }                                            
         Pessoa pessoa = memOp.get();
+		
+		Projeto projAux = new Projeto();
+		
+		BeanUtils.copyProperties(projeto, projAux);
 
-		projeto.setGerente(pessoa);
+		projAux.setGerente(pessoa);
 
-		if(projeto.getId()==null){
-			projeto.colocarEmAnalise();
+		if(projAux.getId()==null){
+			projAux.colocarEmAnalise();
 			Long proximoId = projetoRepositorio.count()+1;
-			projeto.setId(Integer.valueOf(proximoId.toString()));
+			projAux.setId(Integer.valueOf(proximoId.toString()));
 		}
 
-
-		projetoRepositorio.save(projeto);
+		projetoRepositorio.save(projAux);
 		
 		return "redirect:/";
 	}
@@ -111,7 +116,7 @@ public class AppController {
         	} 
 			projeto = projOp.get();
 
-			mav.addObject("projeto", projeto);
+			mav.addObject(atributoProjeto, projeto);
 			mav.addObject("statusProjeto", projeto.getStatus());
 
 			List<Pessoa> membroLista = new ArrayList<>();
@@ -135,7 +140,7 @@ public class AppController {
 	
 	@GetMapping("/remover/{id}")
 	public Object deleteProjeto(@PathVariable(name = "id") int id) {
-		
+
 		ModelAndView mav = null;
 
 		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
@@ -160,7 +165,7 @@ public class AppController {
 
 		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
 		if(!projOp.isPresent()){
-			return ERRORPROJETO;
+			return this.errorProjetoNaoEncontrado;
 		}
 		projeto = projOp.get();
 		
@@ -178,7 +183,7 @@ public class AppController {
 		
 		Optional<Projeto> projOp = projetoRepositorio.findById(id);                  
 		if(!projOp.isPresent()){
-			return ResponseEntity.badRequest().body(ERRORPROJETO);
+			return ResponseEntity.badRequest().body(this.errorProjetoNaoEncontrado);
 		}
 		projeto = projOp.get();
 

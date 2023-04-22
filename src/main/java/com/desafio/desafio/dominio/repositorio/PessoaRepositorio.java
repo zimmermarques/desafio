@@ -11,6 +11,8 @@ import com.desafio.desafio.dominio.Pessoa;
 @RepositoryRestResource(collectionResourceRel = "pessoasCollection", path = "pessoas")
 public interface PessoaRepositorio extends CrudRepository<Pessoa, Integer>{
     
-    public List<Pessoa> findByNome(String nome);
+    public List<Pessoa> findByNomeIgnoreCase(String nome);
+
+    public List<Pessoa> findByCpfIgnoreCase(String cpf);
 
 }

@@ -2,6 +2,7 @@ package com.desafio.desafio.controlador;
 
 import java.util.Optional;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.desafio.desafio.dominio.Pessoa;
+import com.desafio.desafio.dominio.PessoaDTO;
 import com.desafio.desafio.dominio.Projeto;
 import com.desafio.desafio.dominio.repositorio.PessoaRepositorio;
 import com.desafio.desafio.dominio.repositorio.ProjetoRepositorio;
@@ -26,18 +28,25 @@ public class MembroController {
 	private ProjetoRepositorio projetoRepositorio; 
 
     @PostMapping(value = "/membro/salvar")
-    public ResponseEntity<Object> salvar(@RequestBody Pessoa pessoa){
+    public ResponseEntity<Object> salvar(@RequestBody PessoaDTO pessoa){
         Long proximoId = pessoaRepositorio.count()+1;
 
-        pessoa.setId(Integer.valueOf(proximoId.toString()));
+        Pessoa pessoaAux = new Pessoa();
+
+        BeanUtils.copyProperties(pessoa, pessoaAux);
+
+        pessoaAux.setId(Integer.valueOf(proximoId.toString()));
         
-        if(pessoaRepositorio.findByNome(pessoa.getNome()).isEmpty()){
-            pessoaRepositorio.save(pessoa);
-        }else{
+        if(!pessoaRepositorio.findByNomeIgnoreCase(pessoaAux.getNome()).isEmpty()){
             return ResponseEntity.status(HttpStatus.valueOf(400)).body("Membro já existe com esse nome!");    
         }
+        if(!pessoaRepositorio.findByCpfIgnoreCase(pessoaAux.getCpf()).isEmpty()){
+            return ResponseEntity.status(HttpStatus.valueOf(400)).body("Membro já existe com esse CPF!");    
+        }
         
-        return ResponseEntity.ok().body(pessoa);
+        pessoaRepositorio.save(pessoaAux);
+        
+        return ResponseEntity.ok().body(pessoaAux);
     }
 
     @RequestMapping("/adicionar-membro-projeto/{idMembro}/{idProjeto}")
